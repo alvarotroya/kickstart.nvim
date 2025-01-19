@@ -24,6 +24,15 @@ vim.opt.mouse = 'a'
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
 
+-- Disable swapfile
+vim.opt.swapfile = false
+
+-- Disable swapfile
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.softtabstop = 0
+vim.opt.expandtab = false
+
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
@@ -77,9 +86,12 @@ vim.opt.scrolloff = 10
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+--
+-- Splits
+vim.keymap.set('n', '<leader>|', '<Cmd>vsplit<CR>', { desc = 'Vertical Split' })
+vim.keymap.set('n', '<leader>-', '<Cmd>split<CR>', { desc = 'Horizontal Split' })
 
 -- Diagnostic keymaps
--- TODO: fix this later, something about DISPLAY being :0
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
@@ -141,7 +153,7 @@ vim.opt.rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
-  'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  -- 'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
 
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
@@ -166,6 +178,13 @@ require('lazy').setup({
         changedelete = { text = '~' },
       },
     },
+  },
+  {
+    'okuuva/auto-save.nvim',
+    version = '^1.0.0', -- see https://devhints.io/semver, alternatively use '*' to use the latest tagged release
+    cmd = 'ASToggle', -- optional for lazy loading on command
+    event = { 'InsertLeave', 'TextChanged' }, -- optional for lazy loading on trigger events
+    opts = {},
   },
   {
     'stevearc/oil.nvim',
@@ -342,9 +361,9 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>fw', builtin.grep_string, { desc = '[F]ind current [W]ord' })
       vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = '[F]ind by [G]rep' })
       vim.keymap.set('n', '<leader>fd', builtin.diagnostics, { desc = '[F]ind [D]iagnostics' })
-      vim.keymap.set('n', '<leader>fr', builtin.resume, { desc = '[F]ind [R]esume' })
-      vim.keymap.set('n', '<leader>f.', builtin.oldfiles, { desc = '[F]ind Recent Files ("." for repeat)' })
-      vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+      vim.keymap.set('n', '<leader>f.', builtin.resume, { desc = '[F]ind resume ("." for repeat)' })
+      vim.keymap.set('n', '<leader>fr', builtin.oldfiles, { desc = '[F]ind [R]ecent Files ' })
+      vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] find existing buffers' })
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
@@ -549,7 +568,7 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+        ts_ls = {},
         --
 
         lua_ls = {
@@ -598,7 +617,12 @@ require('lazy').setup({
       }
     end,
   },
-
+  { -- AI completion
+    'supermaven-inc/supermaven-nvim',
+    config = function()
+      require('supermaven-nvim').setup {}
+    end,
+  },
   { -- Autoformat
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
@@ -634,10 +658,9 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
-        --
+        python = { 'ruff_fix', 'ruff_organize_imports', 'ruff_format' },
         -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        javascript = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
@@ -709,7 +732,7 @@ require('lazy').setup({
           -- Accept ([y]es) the completion.
           --  This will auto-import if your LSP supports it.
           --  This will expand snippets if the LSP sent a snippet.
-          ['<C-y>'] = cmp.mapping.confirm { select = true },
+          ['<Tab>'] = cmp.mapping.confirm { select = true },
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
@@ -775,7 +798,15 @@ require('lazy').setup({
       vim.cmd.hi 'Comment gui=none'
     end,
   },
-
+  {
+    'lervag/vimtex',
+    lazy = false, -- we don't want to lazy load VimTeX
+    -- tag = "v2.15", -- uncomment to pin to a specific release
+    init = function()
+      -- VimTeX configuration goes here, e.g.
+      vim.g.vimtex_view_method = 'zathura'
+    end,
+  },
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
 
@@ -796,6 +827,10 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
+      vim.keymap.set('n', 'S', '', { desc = 'Remap [S] to [s] for mini.surround' })
+      vim.keymap.set('v', 'S', '', { desc = 'Remap [S] to [s] for mini.surround' })
+
+      require('mini.files').setup()
 
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
@@ -894,17 +929,19 @@ require('lazy').setup({
     },
   },
 })
+--
 -- Custom keybindings for plugins (fix this at some point)
 vim.keymap.set('n', '<leader>R', function()
   require('lazy').sync()
-  -- require('zen-mode').toggle()
 end, { desc = '[R] Reload config.' })
 
 vim.keymap.set('n', '<leader>zen', function()
   require('zen-mode').toggle()
 end, { desc = '[Zen] Mode' })
 
-vim.keymap.set('n', '<leader>e', ':Neotree toggle<CR>', { desc = 'Neo-tree [E]xplorer' })
+vim.keymap.set('n', '<leader>E', ':Neotree toggle<CR>', { desc = 'Neo-tree [E]xplorer' })
+-- TODO: configure mini.files for more effective file exploring
+vim.keymap.set('n', '<leader>e', ':lua MiniFiles.open()<CR>', { desc = 'File [E]xplorer' })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
